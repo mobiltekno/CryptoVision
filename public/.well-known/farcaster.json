@@ -13,8 +13,8 @@
       "actions.ready",
       "wallet.getEthereumProvider"
     ],
-    "description": "",
-    "tagline": ""
+    "description": "Classic Baseout inside Farcaster. Save on-chain high scores on Base.",
+    "tagline": "Base blocks. Set records."
   },
   "accountAssociation": {
     "header": "eyJmaWQiOjI4MzcyNiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEZmRDZhQTdCOTAxQTcxOTUxNGRhRjI1NWFDYzZEOGNiNGRERmE2Y2MifQ",
