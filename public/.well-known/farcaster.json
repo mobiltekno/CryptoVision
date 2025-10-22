@@ -15,5 +15,11 @@
     ],
     "description": "",
     "tagline": ""
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjI4MzcyNiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEZmRDZhQTdCOTAxQTcxOTUxNGRhRjI1NWFDYzZEOGNiNGRERmE2Y2MifQ",
+    "payload": "eyJkb21haW4iOiJjcnlwdG92aXNpb24tcnVieS52ZXJjZWwuYXBwIn0",
+    "signature": "uTIp0xFVdOww97VOwFJkJbIFO/AvsjgOqehQ0XhwLwhBxmf2LHdyN1L/FDserIGsL0qvToAZc5PQdqDTII/fJBs="
   }
 }
+
