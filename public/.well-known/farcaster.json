@@ -1,0 +1,9 @@
+{
+  "name": "Space Invaders (Farcaster)",
+  "url": "https://cryptovision-ruby.vercel.app/",
+  "iconUrl": "https://cryptovision-ruby.vercel.app/farcaster-logo.png",
+  "permissions": {
+    "wallet": true,
+    "siwf": true
+  }
+}
