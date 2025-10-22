@@ -1,9 +1,19 @@
 {
-  "name": "Space Invaders (Farcaster)",
-  "url": "https://cryptovision-ruby.vercel.app/",
-  "iconUrl": "https://cryptovision-ruby.vercel.app/farcaster-logo.png",
-  "permissions": {
-    "wallet": true,
-    "siwf": true
+  "miniapp": {
+    "version": "1",
+    "name": "Space Invaders",
+    "homeUrl": "https://cryptovision-ruby.vercel.app/",
+    "iconUrl": "https://cryptovision-ruby.vercel.app//farcaster-logo.png",
+    "splashImageUrl": "https://cryptovision-ruby.vercel.app//farcaster-logo.png",
+    "splashBackgroundColor": "#0b0f1a",
+    "primaryCategory": "games",
+    "tags": ["base", "baseout", "game"],
+    "requiredChains": ["eip155:8453"],
+    "requiredCapabilities": [
+      "actions.ready",
+      "wallet.getEthereumProvider"
+    ],
+    "description": "",
+    "tagline": ""
   }
 }
