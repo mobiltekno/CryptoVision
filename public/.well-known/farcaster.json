@@ -3,8 +3,8 @@
     "version": "1",
     "name": "Space Invaders",
     "homeUrl": "https://cryptovision-ruby.vercel.app/",
-    "iconUrl": "https://cryptovision-ruby.vercel.app//farcaster-logo.png",
-    "splashImageUrl": "https://cryptovision-ruby.vercel.app//farcaster-logo.png",
+    "iconUrl": "https://cryptovision-ruby.vercel.app/farcaster-logo.png",
+    "splashImageUrl": "https://cryptovision-ruby.vercel.app/farcaster-logo.png",
     "splashBackgroundColor": "#0b0f1a",
     "primaryCategory": "games",
     "tags": ["base", "baseout", "game"],
@@ -13,8 +13,8 @@
       "actions.ready",
       "wallet.getEthereumProvider"
     ],
-    "description": "",
-    "tagline": ""
+    "description": "Klasik uzay istilacısı mini-app.",
+    "tagline": "Vur kaç; skoru zincire yaz!"
   },
   "accountAssociation": {
     "header": "eyJmaWQiOjI4MzcyNiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEZmRDZhQTdCOTAxQTcxOTUxNGRhRjI1NWFDYzZEOGNiNGRERmE2Y2MifQ",
@@ -22,4 +22,3 @@
     "signature": "uTIp0xFVdOww97VOwFJkJbIFO/AvsjgOqehQ0XhwLwhBxmf2LHdyN1L/FDserIGsL0qvToAZc5PQdqDTII/fJBs="
   }
 }
-
