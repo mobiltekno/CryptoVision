@@ -1,0 +1,21 @@
+/* Tam ekran, scrollbar yok */
+:root, html, body { height: 100%; }
+html, body { margin: 0; background: #000; overflow: hidden; color: #fff; }
+
+/* Scrollbar gizle (WebKit + Firefox) */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* Yazı kalınlığı ve görünüm */
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+/* Basit buton stili */
+button {
+  border: none;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  border-radius: 12px;
+  padding: .6rem .9rem;
+  font-weight: 600;
+}
+button:disabled { opacity: .5; cursor: not-allowed; }
