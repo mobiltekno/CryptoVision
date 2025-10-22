@@ -1,19 +1,13 @@
-// src/app/layout.tsx
-import './globals.css';
-import Providers from './providers';
-
-export const metadata = {
-  title: 'FC Invaders',
-  description: 'Farcaster mini game on Base',
-  manifest: '/manifest.webmanifest',
-  icons: [{ rel: 'icon', url: '/favicon.ico' }],
-};
+// app/layout.tsx (özet)
+import FarcasterBridge from '@/components/FarcasterBridge';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
-      <body className="h-screen overflow-hidden text-white antialiased">
-        <Providers>{children}</Providers>
+      <body>
+        {/* splash'ın hemen kapanması için: */}
+        <FarcasterBridge title="Space Invaders" when="mount" />
+        {children}
       </body>
     </html>
   );
