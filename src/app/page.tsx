@@ -1,10 +1,12 @@
 'use client';
-
 import { useAccount, useReadContract } from 'wagmi';
-import { STORE_ABI, STORE_ADDR } from '@/lib/contract';
-import { useState } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import ShipSelect from '@/components/ShipSelect';
+import { STORE_ABI, STORE_ADDR } from '@/lib/contract';
+import { useState } from 'react';
+
+// getPlayer dönüşünü tipliyoruz (örnek: [tier, highScore] gibi)
+type PlayerTuple = readonly [bigint, bigint] | undefined;
 
 export default function Page() {
   const { address, isConnected } = useAccount();
@@ -17,58 +19,22 @@ export default function Page() {
     args: isConnected && address ? [address] : undefined,
   });
 
-  const currentTier = Number((data as any)?.[0] ?? 1) as 1 | 2 | 3;
-
-  // Ortak genişlik (panel + oyun)
-  const COLUMN_MAX = 440; // px
+  const player = data as PlayerTuple;
+  const currentTier = (player ? Number(player[0]) : 1) as 1 | 2 | 3;
 
   return (
     <main
       style={{
-        minHeight: '100vh',
-        width: '100vw',
-        overflow: 'hidden',
-        background: '#000',
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        minHeight: '100vh', width: '100vw', overflow: 'hidden',
+        background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
-      {/* hepsi tek kolon ve ortada */}
-      <div
-        style={{
-          width: `min(92vw, ${COLUMN_MAX}px)`,
-          margin: '0 auto',
-        }}
-      >
-        {/* Panel — sağ/sol dar, oyunla tam aynı genişlikte */}
-        <div
-          style={{
-            background: 'rgba(255,255,255,.06)',
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 12,
-          }}
-        >
+      <div style={{ width: 'min(92vw, 440px)' }}>
+        <div style={{ background:'rgba(255,255,255,.06)', borderRadius:12, padding:16, marginBottom:12 }}>
           <ShipSelect onPurchased={() => setRefresh((x) => x + 1)} />
         </div>
-
-        {/* Oyun sahnesi — kesin 3:4 oran (360x480) */}
-        <div
-          style={{
-            position: 'relative',
-            width: `min(92vw, ${COLUMN_MAX}px)`,
-            margin: '0 auto',
-            // 3:4 oran için padding-top (4/3 = 133.333%)
-            paddingTop: '133.333%',
-            borderRadius: 12,
-            overflow: 'hidden',
-            background: '#000',
-          }}
-        >
-          {/* Canvas bu kutuyu %100 dolduracak (absolute) */}
-          <div style={{ position: 'absolute', inset: 0 }}>
+        <div style={{ position:'relative', width:'min(92vw, 440px)', paddingTop:'133.333%', borderRadius:12, overflow:'hidden' }}>
+          <div style={{ position:'absolute', inset:0 }}>
             <GameCanvas
               key={refresh}
               shipTier={currentTier}

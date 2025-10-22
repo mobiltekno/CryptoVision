@@ -13,6 +13,27 @@ type Foe = {
 };
 type Foe2 = { x:number; y:number; alive:boolean; fireCd:number; spriteIdx:number };
 
+/* ===== Canvas boyutu ve sprite sabitleri (component dışı) ===== */
+const CANVAS_W = 360;
+const CANVAS_H = 480;
+
+const SHIP_SRC_MAP: Record<1|2|3, string> = {
+  1: '/ship_t1.png',
+  2: '/ship_t2.png',
+  3: '/ship_t3.png',
+};
+const W1_SPRITES = ['/w1_a.png', '/w1_b.png'] as const;
+const W2_SPRITES = ['/w2_a.png', '/w2_b.png'] as const;
+
+/* ===== Yardımcı: image preload ===== */
+const loadImage = (src:string) =>
+  new Promise<HTMLImageElement>((res, rej) => {
+    const i = new Image();
+    i.src = src;
+    i.onload = () => res(i);
+    i.onerror = rej;
+  });
+
 export default function GameCanvas({
   shipTier,
   onScored,
@@ -23,33 +44,32 @@ export default function GameCanvas({
   onGameOver?: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [score, setScore] = useState(0);
   const { writeContractAsync } = useWriteContract();
 
-  const shipSrcMap: Record<1|2|3, string> = {
-    1: '/ship_t1.png', 2: '/ship_t2.png', 3: '/ship_t3.png',
-  };
-  const W1_SPRITES = ['/w1_a.png', '/w1_b.png'];
-  const W2_SPRITES = ['/w2_a.png', '/w2_b.png'];
-
-  const loadImage = (src:string) => new Promise<HTMLImageElement>((res, rej) => {
-    const i = new Image(); i.src = src; i.onload = () => res(i); i.onerror = rej;
-  });
+  // ekranda canlı skor
+  const [score, setScore] = useState(0);
+  const scoreRef = useRef(0);
+  const onScoredRef = useRef(onScored);
+  const onGameOverRef = useRef(onGameOver);
+  onScoredRef.current = onScored;
+  onGameOverRef.current = onGameOver;
 
   useEffect(() => {
-    const cvs = canvasRef.current!; const ctx = cvs.getContext('2d')!;
-    cvs.width = 360; cvs.height = 480;
-    (ctx as any).imageSmoothingEnabled = false;
+    const cvs = canvasRef.current!;
+    const ctx = cvs.getContext('2d')!;
+    cvs.width = CANVAS_W;
+    cvs.height = CANVAS_H;
+    ctx.imageSmoothingEnabled = false;
 
-    // Canvas odak + klavye
+    // klavye odağı
     cvs.tabIndex = 0;
     try { cvs.focus({ preventScroll: true }); } catch {}
 
-    // HP
+    // ---- Tier → HP ----
     const MAX_HP = shipTier === 1 ? 100 : shipTier === 2 ? 150 : 200;
     let hp = MAX_HP;
 
-    // Ship
+    // ---- Ship ----
     const SHIP_DRAW = 64;
     const SHIP_HIT  = 42;
     const EDGE_M = 6;
@@ -59,16 +79,17 @@ export default function GameCanvas({
     const enemyBullets: EnemyBullet[] = [];
     const particles: Particle[] = [];
 
-    // Waves
+    // ---- Waves ----
     const foes: Foe[] = [];
     for (let r=0;r<4;r++) for (let c=0;c<8;c++) {
-      const bx=30+c*38, by=30+r*28;
+      const bx = 30 + c * 38;              // const (lint fix)
+      const by = 30 + r * 28;
       foes.push({ baseX:bx, baseY:by, x:bx, y:by, alive:true, attacking:false, vx:0, vy:0, spriteIdx:(r+c)%W1_SPRITES.length });
     }
     let wave2: Foe2[] = [];
     let inWave2 = false;
 
-    // Param
+    // ---- Params ----
     let last=0, fireCd=0;
     const fireRate = shipTier===1?320 : shipTier===2?220 : 140;
     const mult = shipTier===1?1 : shipTier===2?2 : 3;
@@ -82,16 +103,16 @@ export default function GameCanvas({
     const W2_ROWS=3, W2_COLS=6, W2_STARTY=60, W2_GAPX=46;
     const W2_FIRE_MS=10000, W2_BULLET_V=0.9;
 
-    // Damage
+    // damage
     const DMG_W1_COLLIDE=25, DMG_W2_COLLIDE=20, DMG_BULLET=12;
 
-    // Helpers
+    // helpers
     const rectHit = (ax:number,ay:number,aw:number,ah:number,bx:number,by:number,bw:number,bh:number) =>
       ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
 
     const damage = (d:number) => { if (state!=='play') return; hp -= d; if (hp<=0) explode(); };
 
-    // Klavye (ok tuşları)
+    // input
     const keys:Record<string,boolean> = {};
     const onKey=(e:KeyboardEvent)=>{ 
       keys[e.key] = e.type==='keydown';
@@ -116,12 +137,11 @@ export default function GameCanvas({
       return { x, y };
     };
 
-    // ---------- TOUCH/MOBILE: Pointer Events ile tek parmak sürükle ----------
+    // Pointer (touch/mouse) ile sürükleme
     let dragging = false;
     let activeId: number | null = null;
 
     const onPointerDown = (e:PointerEvent) => {
-      // sadece primary touch/mouse
       if (activeId!==null) return;
       dragging = true; activeId = e.pointerId;
       cvs.setPointerCapture?.(e.pointerId);
@@ -148,13 +168,11 @@ export default function GameCanvas({
     window.addEventListener('pointerup',   endPointer,     { passive:false });
     window.addEventListener('pointercancel', endPointer,   { passive:false });
 
-    // -------------------------------------------------------------------------
-
-    // Asset preload
+    // preload
     let shipImg:HTMLImageElement, w1Imgs:HTMLImageElement[]=[], w2Imgs:HTMLImageElement[]=[];
     let assetsReady=false;
     Promise.all([
-      loadImage(shipSrcMap[shipTier]),
+      loadImage(SHIP_SRC_MAP[shipTier]),
       ...W1_SPRITES.map(loadImage),
       ...W2_SPRITES.map(loadImage),
     ]).then((imgs)=>{
@@ -162,7 +180,7 @@ export default function GameCanvas({
       assetsReady=true; requestAnimationFrame(tick);
     }).catch(()=>{ assetsReady=true; requestAnimationFrame(tick); });
 
-    // State
+    // state machine
     type State = 'play' | 'explode' | 'done';
     let state: State = 'play';
     let explodeTimer = 0;
@@ -193,11 +211,12 @@ export default function GameCanvas({
         particles.push({ x: ship.x, y: ship.y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, life: 0, max: 50 + Math.random()*30,
           color: i%3===0 ? '#ffd166' : i%3===1 ? '#ef4444' : '#f97316' });
       }
-      if (!scoreSubmitted && score>0) {
+      // skoru zincire yaz (bir kez)
+      if (!scoreSubmitted && scoreRef.current>0) {
         scoreSubmitted = true;
         (async ()=>{ try {
-          await writeContractAsync({ address: STORE_ADDR, abi: STORE_ABI, functionName: 'submitScore', args: [BigInt(score)] });
-          onScored?.();
+          await writeContractAsync({ address: STORE_ADDR, abi: STORE_ABI, functionName: 'submitScore', args: [BigInt(scoreRef.current)] });
+          onScoredRef.current?.();
         } catch {} })();
       }
     }
@@ -210,18 +229,18 @@ export default function GameCanvas({
       if (state === 'play') {
         fireCd -= dt; attackTimer += dt; w1ShootTimer += dt;
 
-        // Klavye ile 4 yön
+        // 4-yön hareket
         if (keys['ArrowLeft'])  ship.x -= ship.speed;
         if (keys['ArrowRight']) ship.x += ship.speed;
         if (keys['ArrowUp'])    ship.y -= ship.speed;
         if (keys['ArrowDown'])  ship.y += ship.speed;
         clampPos();
 
-        // Ateş
+        // oyuncu ateşi
         if (fireCd<=0){ bullets.push({x:ship.x, y:ship.y-(SHIP_HIT/2)}); fireCd=fireRate; }
         bullets.forEach(b=> b.y -= 5);
 
-        // Wave1
+        // wave1
         if (!inWave2 && attackTimer>=ATTACK_INTERVAL){ attackTimer=0; chooseAttacker(); }
         if (!inWave2 && w1ShootTimer>=W1_SHOOT_INTERVAL){
           w1ShootTimer=0;
@@ -249,14 +268,15 @@ export default function GameCanvas({
           if (!f.alive) continue;
           for (const b of bullets){
             if (rectHit(b.x-1,b.y-6,2,6, f.x-10,f.y-10,20,20)){
-              f.alive=false; b.y=-9999; setScore(s=>s+10*mult);
+              f.alive=false; b.y=-9999;
+              setScore((s)=>{ const ns = s + 10*mult; scoreRef.current = ns; return ns; });
             }
           }
         }
 
         if (!inWave2 && !foes.some(f=>f.alive)) spawnWave2();
 
-        // Wave2
+        // wave2
         if (inWave2){
           for (const e of wave2){
             if (!e.alive) continue;
@@ -272,7 +292,7 @@ export default function GameCanvas({
           }
         }
 
-        // Düşman mermileri
+        // düşman mermileri
         for (const eb of enemyBullets){ eb.x+=eb.vx; eb.y+=eb.vy; }
         for (let i=enemyBullets.length-1;i>=0;i--){
           const eb=enemyBullets[i];
@@ -283,13 +303,12 @@ export default function GameCanvas({
           }
         }
 
-        // Temizlik
         for (let i=bullets.length-1;i>=0;i--) if (bullets[i].y<-50) bullets.splice(i,1);
       }
       else if (state === 'explode') {
         explodeTimer += dt;
         for (const p of particles){ p.x += p.vx; p.y += p.vy; p.life += 1; p.vy += 0.02; }
-        if (explodeTimer > 1200) { state = 'done'; onGameOver?.(); }
+        if (explodeTimer > 1200) { state = 'done'; onGameOverRef.current?.(); }
       }
 
       draw();
@@ -304,7 +323,7 @@ export default function GameCanvas({
     function draw(){
       ctx.fillStyle='#000'; ctx.fillRect(0,0,cvs.width,cvs.height);
 
-      // Ship / patlama
+      // ship / patlama
       if (state !== 'explode') {
         if (shipImg && shipImg.complete)
           ctx.drawImage(shipImg, ship.x - SHIP_DRAW/2, ship.y - SHIP_DRAW/2, SHIP_DRAW, SHIP_DRAW);
@@ -323,42 +342,40 @@ export default function GameCanvas({
         }
       }
 
-      // Player bullets
+      // player bullets
       ctx.fillStyle='#fff';
       bullets.forEach(b=> ctx.fillRect(b.x-1, b.y-6, 2, 6));
 
-      // Enemies
+      // enemies
       foes.forEach(f=>{
         if (!f.alive) return;
-        ctx.drawImage(
-          (w1Imgs?.[f.spriteIdx % (w1Imgs.length||1)]) ?? ({} as HTMLImageElement),
-          f.x-18, f.y-18, 36, 36
-        );
+        const img = w1Imgs?.[f.spriteIdx % (w1Imgs.length||1)];
+        if (img && img.complete) ctx.drawImage(img, f.x-18, f.y-18, 36, 36);
+        else { ctx.fillStyle='#ff5a5a'; ctx.fillRect(f.x-10, f.y-10, 20, 20); }
       });
       if (inWave2){
         wave2.forEach(e=>{
           if (!e.alive) return;
-          ctx.drawImage(
-            (w2Imgs?.[e.spriteIdx % (w2Imgs.length||1)]) ?? ({} as HTMLImageElement),
-            e.x-20, e.y-20, 40, 40
-          );
+          const img = w2Imgs?.[e.spriteIdx % (w2Imgs.length||1)];
+          if (img && img.complete) ctx.drawImage(img, e.x-20, e.y-20, 40, 40);
+          else { ctx.fillStyle='#ff7b00'; ctx.fillRect(e.x-12, e.y-12, 24, 24); }
         });
       }
 
-      // Enemy bullets
+      // enemy bullets
       ctx.fillStyle='#f33';
       enemyBullets.forEach(eb => ctx.fillRect(eb.x-2, eb.y-4, 4, 8));
 
-      // Skor
+      // skor (scoreRef, böylece effect deps gerekmez)
       ctx.fillStyle='#fff';
-      ctx.fillText(`Skor: ${score}`, 10, 16);
+      ctx.fillText(`Skor: ${scoreRef.current}`, 10, 16);
 
-      // HP bar (altta)
+      // HP bar (ALTTA)
       if (state === 'play') {
         const ratio = Math.max(0, Math.min(1, hp / MAX_HP));
         const lerp=(a:number,b:number,t:number)=>Math.round(a+(b-a)*t);
         const rr=lerp(34,239,1-ratio), gg=lerp(197,68,1-ratio), bb=lerp(94,68,1-ratio);
-        const bw=90, bh=8; let bx=ship.x-bw/2; let by=ship.y+SHIP_HIT/2+8;
+        const bw=90, bh=8; const bx=ship.x-bw/2; let by=ship.y+SHIP_HIT/2+8;  // bx -> const (lint fix)
         if (by+bh > cvs.height-EDGE_M) by = cvs.height-EDGE_M-bh;
         ctx.fillStyle='rgba(255,255,255,.15)'; ctx.fillRect(bx,by,bw,bh);
         ctx.fillStyle=`rgb(${rr},${gg},${bb})`; ctx.fillRect(bx,by,bw*ratio,bh);
@@ -366,27 +383,23 @@ export default function GameCanvas({
       }
     }
 
-    // İlk çizim
+    // ilk çizim
     drawLoading();
 
     return () => {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKey);
-      cvs.removeEventListener('keydown', onKey);
-      cvs.removeEventListener('keyup', onKey);
-
       cvs.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup',   endPointer);
       window.removeEventListener('pointercancel', endPointer);
     };
-  }, [shipTier, writeContractAsync]);
+  }, [shipTier, writeContractAsync]); // yalnızca gerekli bağımlılıklar
 
   return (
     <canvas
       ref={canvasRef}
       className="rounded-xl border border-white/10"
-      // mobile’de sayfa scroll/zoom olmasın
       style={{
         position:'absolute', inset:0, width:'100%', height:'100%', display:'block',
         touchAction:'none', WebkitUserSelect:'none', userSelect:'none'

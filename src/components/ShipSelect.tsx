@@ -8,6 +8,7 @@ import {
   useReadContract,
   useConnect,
 } from 'wagmi';
+import type { Connector } from 'wagmi';
 import { STORE_ABI, STORE_ADDR } from '@/lib/contract';
 import { formatEther } from 'viem';
 import { useMemo, useState } from 'react';
@@ -22,9 +23,24 @@ export default function ShipSelect({ onPurchased }: { onPurchased: () => void })
   const { isLoading: isMining } = useWaitForTransactionReceipt({ hash: hash ?? undefined });
 
   // Fiyat etiketleri
-  const { data: p1 } = useReadContract({ address: STORE_ADDR, abi: STORE_ABI, functionName: 'usdCentsToWei', args: [500n] });
-  const { data: p2 } = useReadContract({ address: STORE_ADDR, abi: STORE_ABI, functionName: 'usdCentsToWei', args: [1000n] });
-  const { data: p3 } = useReadContract({ address: STORE_ADDR, abi: STORE_ABI, functionName: 'usdCentsToWei', args: [2000n] });
+  const { data: p1 } = useReadContract({
+    address: STORE_ADDR,
+    abi: STORE_ABI,
+    functionName: 'usdCentsToWei',
+    args: [500n],
+  });
+  const { data: p2 } = useReadContract({
+    address: STORE_ADDR,
+    abi: STORE_ABI,
+    functionName: 'usdCentsToWei',
+    args: [1000n],
+  });
+  const { data: p3 } = useReadContract({
+    address: STORE_ADDR,
+    abi: STORE_ABI,
+    functionName: 'usdCentsToWei',
+    args: [2000n],
+  });
 
   const labels = useMemo(() => {
     const f = (v: unknown) => (typeof v === 'bigint' ? `~${formatEther(v)} ETH` : '...');
@@ -33,22 +49,42 @@ export default function ShipSelect({ onPurchased }: { onPurchased: () => void })
 
   async function ensureFarcaster() {
     if (isConnected) return;
-    // farcaster adını/id'sini içeren connector'ü bul
-    const fc = connectors.find(
-      (c) => c.name.toLowerCase().includes('farcaster') || c.id.toLowerCase().includes('farcaster')
-    ) ?? connectors[0];
+
+    // farcaster geçen bir connector tercih et; yoksa ilk connector
+    const fc: Connector | undefined =
+      connectors.find(
+        (c) =>
+          c.name?.toLowerCase().includes('farcaster') ||
+          c.id?.toLowerCase().includes('farcaster')
+      ) ?? connectors[0];
+
+    if (!fc) {
+      alert('Uygun bir cüzdan bağlayıcı bulunamadı. Lütfen Farcaster uygulamasını açın.');
+      throw new Error('No available connector');
+    }
+
     try {
       await connectAsync({ connector: fc });
-    } catch (e) {
-      alert('Cüzdan bağlanamadı. Lütfen Farcaster uygulamasından tekrar deneyin.');
-      throw e;
+    } catch (err: unknown) {
+      const msg =
+        typeof err === 'object' && err !== null
+          ? 
+            ((err as { shortMessage?: string; message?: string }).shortMessage ??
+              (err as { message?: string }).message ??
+              'Cüzdan bağlanamadı.')
+          : String(err);
+      alert(msg);
+      throw err;
     }
   }
 
   async function buy(tier: 1 | 2 | 3) {
     try {
       await ensureFarcaster();
-      if (!pc) return alert('Ağ istemcisi yüklenemedi, sayfayı yenileyin.');
+      if (!pc) {
+        alert('Ağ istemcisi yüklenemedi, sayfayı yenileyin.');
+        return;
+      }
 
       const cents = tier === 1 ? 500n : tier === 2 ? 1000n : 2000n;
       const price = (await pc.readContract({
@@ -68,14 +104,28 @@ export default function ShipSelect({ onPurchased }: { onPurchased: () => void })
 
       setHash(txHash);
       onPurchased(); // aktif tier ekranda güncellensin
-    } catch (e: any) {
-      // kullanıcı iptal etmiş olabilir
-      if (!String(e?.message || e).toLowerCase().includes('user rejected'))
-        alert(e?.shortMessage ?? e?.message ?? String(e));
+    } catch (err: unknown) {
+      const isRejected =
+        typeof err === 'object' &&
+        err !== null &&
+        String((err as { message?: string }).message ?? '')
+          .toLowerCase()
+          .includes('user rejected');
+
+      if (!isRejected) {
+        const msg =
+          typeof err === 'object' && err !== null
+            ?
+              ((err as { shortMessage?: string; message?: string }).shortMessage ??
+                (err as { message?: string }).message ??
+                'İşlem hatası.')
+            : String(err);
+        alert(msg);
+      }
     }
   }
 
-  const disabled = isMining; // <- sadece tx sırasında kilitlenir
+  const disabled = isMining; // sadece tx sırasında kilitlenir
 
   return (
     <div style={{ borderRadius: 16, padding: 16, background: 'rgba(255,255,255,.06)' }}>
@@ -87,9 +137,15 @@ export default function ShipSelect({ onPurchased }: { onPurchased: () => void })
       </div>
 
       <div style={{ display: 'flex', gap: 8 }}>
-        <button disabled={disabled} onClick={() => buy(1)}>Tier 1 Satın Al</button>
-        <button disabled={disabled} onClick={() => buy(2)}>Tier 2 Satın Al</button>
-        <button disabled={disabled} onClick={() => buy(3)}>Tier 3 Satın Al</button>
+        <button disabled={disabled} onClick={() => buy(1)}>
+          Tier 1 Satın Al
+        </button>
+        <button disabled={disabled} onClick={() => buy(2)}>
+          Tier 2 Satın Al
+        </button>
+        <button disabled={disabled} onClick={() => buy(3)}>
+          Tier 3 Satın Al
+        </button>
       </div>
 
       {hash && (
