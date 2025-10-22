@@ -1,14 +1,7 @@
-// app/layout.tsx (özet)
-import FarcasterBridge from '@/components/FarcasterBridge';
+'use client';
+import { initMiniApp } from './miniapp-ready';
+initMiniApp();
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="tr">
-      <body>
-        {/* splash'ın hemen kapanması için: */}
-        <FarcasterBridge title="Space Invaders" when="mount" />
-        {children}
-      </body>
-    </html>
-  );
+  return <html lang="tr"><body>{children}</body></html>;
 }
